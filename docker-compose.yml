@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+  n8n:
+    image: n8nio/n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - TZ=America/Chicago  # Set your timezone
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=terminator
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_CORS_ALLOW_ORIGIN=*
+      - CORS_ALLOW_ORIGIN=*
+    volumes:
+      - ${HOME}/.n8n:/home/node/.n8n

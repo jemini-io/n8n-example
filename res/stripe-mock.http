@@ -1,0 +1,20 @@
+
+POST http://localhost:5678/webhook-test/stripe-cli
+Content-Type: application/json
+
+{
+  "type": "payment_intent.succeeded",
+  "data": {
+    "object": {
+      "id": "pi_mock_123",
+      "metadata": {
+        "type": "emergency_consultation",
+        "name": "Dan Villa",
+        "email": "dan@jemini.io",
+        "phone": "555-1234"
+      } 
+    }
+  }
+}
+
+

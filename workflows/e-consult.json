@@ -1,0 +1,198 @@
+{
+  "name": "Emergency Consultation Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "schedule-consultation",
+        "method": "POST"
+      },
+      "id": "Webhook_Trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "calendar": "Primary",
+        "timeMin": "={{$now}}",
+        "timeMax": "={{$now.add(1, 'day')}}",
+        "options": {}
+      },
+      "id": "Check_Availability",
+      "name": "Check Availability",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "calendar": "Primary",
+        "start": "={{$json['startTime']}}",
+        "end": "={{$json['endTime']}}",
+        "summary": "Emergency Consultation",
+        "description": "Automated emergency consultation meeting.",
+        "conferenceData": {
+          "createRequest": {
+            "requestId": "={{$randomId()}}"
+          }
+        }
+      },
+      "id": "Create_Event",
+      "name": "Create Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "from": "+1234567890",
+        "to": "={{$json['clientPhone']}}",
+        "body": "Your emergency consultation is scheduled. Join here: {{$json['meetLink']}}. Reply 'Y' to confirm."
+      },
+      "id": "Send_SMS_Client",
+      "name": "Send SMS to Client",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "from": "+1234567890",
+        "to": "+0987654321",
+        "body": "New emergency consultation scheduled. Join here: {{$json['meetLink']}}. Reply 'Y' to confirm."
+      },
+      "id": "Send_SMS_You",
+      "name": "Send SMS to You",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "path": "receive-confirmation",
+        "method": "POST"
+      },
+      "id": "Receive_Confirmation",
+      "name": "Receive Confirmation",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json['Body']}}",
+              "operation": "equals",
+              "value2": "Y"
+            }
+          ]
+        }
+      },
+      "id": "Check_Confirmation",
+      "name": "Check Confirmation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "from": "+1234567890",
+        "to": "={{$json['clientPhone']}}",
+        "body": "Your consultation has been confirmed."
+      },
+      "id": "Notify_Client",
+      "name": "Notify Client",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1450, 200]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "from": "+1234567890",
+        "to": "+0987654321",
+        "body": "Client has confirmed the consultation."
+      },
+      "id": "Notify_You",
+      "name": "Notify You",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1450, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability": {
+      "main": [
+        [
+          {
+            "node": "Create Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Event": {
+      "main": [
+        [
+          {
+            "node": "Send SMS to Client",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send SMS to You",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Check Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Notify Client",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify You",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  }
+}
