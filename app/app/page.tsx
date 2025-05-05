@@ -18,10 +18,13 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          successUrl: `${window.location.origin}/confirmation?success=true`,
+          cancelUrl: `${window.location.origin}/confirmation?success=false`,
+        }),
       });
 
-      // Check if the response is a redirect
       const data = await response.json();
       console.log(data);
       if (data?.redirectUrl) {
@@ -36,7 +39,6 @@ export default function Home() {
 
       // Reset form
       setFormData({ name: '', phone: '', email: '' });
-      // alert('Form submitted successfully!');
     } catch (error) {
       console.error('Error submitting form:', error);
       alert('Failed to submit form. Please try again.');
@@ -56,9 +58,12 @@ export default function Home() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Contact Form
+            Emergency Virtual Consultation
           </h2>
         </div>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Please fill out the form below to schedule a virtual consultation with an InTown Technician at the next available time.
+        </p>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
