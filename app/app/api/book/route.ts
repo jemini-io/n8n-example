@@ -1,23 +1,51 @@
 import { NextResponse } from "next/server";
-
 import { NextRequest } from "next/server";
+import Stripe from "stripe";
+import { BookRequest, BookResponse, ErrorResponse } from "@/app/types";
+import { env } from "@/app/config/env";
+
+// Initialize Stripe with your secret key
+const stripe = new Stripe(env.stripe.secretKey);
 
 export async function POST(req: NextRequest) {
-  let n8nPaymentWebhook = "https://dan-jemini.app.n8n.cloud/webhook/schedule-intake";
-  const body = await req.json();
-  console.log(n8nPaymentWebhook, body);
-  const n8nRes = await fetch(n8nPaymentWebhook, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: body.name,
-      phone: body.phone,
-      email: body.email,
-      successUrl: body.successUrl,
-      cancelUrl: body.cancelUrl,
-    }),
-  });
-  const data = await n8nRes.json();
-  console.log(data);
-  return NextResponse.json({ redirectUrl: data.url });
+  try {
+    const body = await req.json() as BookRequest;
+    
+    // Create a Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: env.stripe.priceId,
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: body.successUrl,
+      cancel_url: body.cancelUrl,
+      metadata: {
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        type: "emergency_consultation",
+      },
+      customer_email: body.email,
+      billing_address_collection: "required",
+      phone_number_collection: {
+        enabled: true,
+      },
+    });
+
+    if (!session.url) {
+      const errorResponse: ErrorResponse = { error: "Error creating payment session" };
+      return NextResponse.json(errorResponse, { status: 500 });
+    }
+
+    const response: BookResponse = { sessionUrl: session.url };
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error("Error creating Stripe session:", error);
+    const errorResponse: ErrorResponse = { error: "Error creating payment session" };
+    return NextResponse.json(errorResponse, { status: 500 });
+  }
 }
