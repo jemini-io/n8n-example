@@ -3,28 +3,15 @@
 import { useState, useEffect } from 'react';
 import { FormData, BookResponse, ErrorResponse, TimeSlot } from '@/app/types';
 
-function generateTimeSlots(): TimeSlot[] {
-  const slots: TimeSlot[] = [];
-  const now = new Date();
-  now.setMinutes(Math.ceil(now.getMinutes() / 30) * 30); // Round up to next 30 min
-
-  for (let i = 0; i < 5; i++) {
-    const startTime = new Date(now.getTime() + i * 30 * 60000);
-    const endTime = new Date(startTime.getTime() + 30 * 60000);
-    
-    slots.push({
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      formattedTime: `${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    });
-  }
-
-  return slots;
+interface AvailableTimeSlots {
+  date: string;
+  timeSlots: string[];
 }
 
 export default function Home() {
   const [step, setStep] = useState(1);
-  const [timeSlots] = useState<TimeSlot[]>(generateTimeSlots());
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<AvailableTimeSlots[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     phone: '',
@@ -32,11 +19,36 @@ export default function Home() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleTimeSelect = (slot: TimeSlot) => {
+  useEffect(() => {
+    const fetchTimeSlots = async () => {
+      try {
+        const response = await fetch('/api/book');
+        const data = await response.json();
+        setAvailableTimeSlots(data);
+        if (data.length > 0) {
+          setSelectedDate(data[0].date); // Default to the first available date
+        }
+      } catch (error) {
+        console.error('Error fetching time slots:', error);
+      }
+    };
+
+    fetchTimeSlots();
+  }, []);
+
+  const handleDateSelect = (date: string) => {
+    setSelectedDate(date);
+  };
+
+  const handleTimeSelect = (time: string) => {
+    if (!selectedDate) return;
+    const startTime = new Date(`${selectedDate}T${time}:00`);
+    const endTime = new Date(startTime.getTime() + 30 * 60000);
+
     setFormData(prev => ({
       ...prev,
-      startTime: slot.startTime,
-      endTime: slot.endTime
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString()
     }));
     setStep(2);
   };
@@ -86,11 +98,25 @@ export default function Home() {
     }));
   };
 
+  const formatTime = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true,
+      timeZone: 'America/Chicago'
+    }).format(date) + ' CT';
+  };
+
   const formatSelectedTime = () => {
     if (!formData.startTime || !formData.endTime) return '';
     const start = new Date(formData.startTime);
     const end = new Date(formData.endTime);
-    return `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const date = new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    }).format(start);
+    return `Selected appointment time: ${date} ${formatTime(start)} - ${formatTime(end)}`;
   };
 
   return (
@@ -101,7 +127,7 @@ export default function Home() {
             Schedule a Virtual Consultation
           </h2>
           <h4 className="m-2 text-center text-gray-500">
-            {step === 1 ? 'Select Appointment Time' : 'Provide Your Contact Info'}
+            {step === 1 ? 'Select Appointment Date and Time' : 'Provide Your Contact Info'}
           </h4>
           <h6 className="m-2 text-center text-sm text-gray-500">
             Brought to you by InTown Plumbing
@@ -110,15 +136,31 @@ export default function Home() {
 
         {step === 1 ? (
           <div className="mt-8 space-y-4">
-            {timeSlots.map((slot, index) => (
-              <button
-                key={index}
-                onClick={() => handleTimeSelect(slot)}
-                className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                {slot.formattedTime}
-              </button>
-            ))}
+            <div className="flex overflow-x-auto space-x-4">
+              {availableTimeSlots.map((slot, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleDateSelect(slot.date)}
+                  className={`px-4 py-2 border rounded-md ${selectedDate === slot.date ? 'bg-indigo-500 text-white' : 'bg-white text-gray-700'}`}
+                >
+                  {new Date(slot.date).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                </button>
+              ))}
+            </div>
+
+            {selectedDate && (
+              <div className="mt-4 space-y-2">
+                {availableTimeSlots.find(slot => slot.date === selectedDate)?.timeSlots.map((time, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleTimeSelect(time)}
+                    className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    {formatTime(new Date(`${selectedDate}T${time}:00`))}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -131,7 +173,7 @@ export default function Home() {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-indigo-700">
-                    Selected appointment time: <span className="font-medium">{formatSelectedTime()}</span>
+                    {formatSelectedTime()}
                   </p>
                 </div>
               </div>

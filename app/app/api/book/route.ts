@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { BookRequest, BookResponse, ErrorResponse } from "@/app/types";
 import { env } from "@/app/config/env";
+import { getAvailableTimeSlots } from "@/app/services/book/appointmentAvailabilityHandler";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(env.stripe.secretKey);
@@ -54,5 +55,16 @@ export async function POST(req: NextRequest) {
     console.error("Error creating Stripe session:", error);
     const errorResponse: ErrorResponse = { error: "Error creating payment session" };
     return NextResponse.json(errorResponse, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const availableTimeSlots = await getAvailableTimeSlots();
+
+    return NextResponse.json(availableTimeSlots);
+  } catch (error) {
+    console.error("Error fetching available time slots:", error);
+    return NextResponse.json({ error: "Error fetching available time slots" }, { status: 500 });
   }
 }
