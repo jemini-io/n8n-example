@@ -11,6 +11,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as BookRequest;
     
+    if (!body.startTime || !body.endTime) {
+      const errorResponse: ErrorResponse = { error: "Missing appointment time" };
+      return NextResponse.json(errorResponse, { status: 400 });
+    }
+
     // Create a Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -28,6 +33,8 @@ export async function POST(req: NextRequest) {
         email: body.email,
         phone: body.phone,
         type: "emergency_consultation",
+        start_time: body.startTime,
+        end_time: body.endTime,
       },
       customer_email: body.email,
       billing_address_collection: "required",
