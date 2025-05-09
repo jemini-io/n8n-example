@@ -52,11 +52,6 @@ export default function Home() {
     const startTime = new Date(year, month - 1, day, hours, minutes);
     const endTime = new Date(startTime.getTime() + 30 * 60000);
 
-    console.log('POST Selected Date:', selectedDate);
-    console.log('Selected Time:', time);
-    console.log('Start Time:', startTime.toISOString());
-    console.log('End Time:', endTime.toISOString());
-
     setFormData(prev => ({
       ...prev,
       startTime: startTime.toISOString(),
@@ -111,11 +106,15 @@ export default function Home() {
   };
 
   const formatTime = (date: Date) => {
+    if (isNaN(date.getTime())) {
+      console.error('Invalid Date:', date);
+      return 'Invalid Date';
+    }
+
     return new Intl.DateTimeFormat('en-US', {
       hour: 'numeric',
       minute: 'numeric',
-      hour12: true,
-      timeZone: 'America/Chicago'
+      hour12: true
     }).format(date) + ' CT';
   };
 

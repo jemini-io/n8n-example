@@ -19,12 +19,13 @@ async function getAvailableTimeSlots(): Promise<any> {
     const shiftsResponse = await technicianService.getTechShifts(authToken, appKey, tenantId, technicianId, todayStr);
     const shifts = shiftsResponse.data;
 
-    // Filter shifts for the next 2 weeks
+    // Filter shifts for the next 2 weeks, including today
     const twoWeeksFromNow = new Date(today);
     twoWeeksFromNow.setDate(today.getDate() + 14);
     const filteredShifts = shifts.filter((shift: any) => {
         const shiftDate = new Date(shift.start);
-        return shiftDate >= today && shiftDate <= twoWeeksFromNow;
+        // Include today's shifts by comparing only the date part
+        return shiftDate.toISOString().split('T')[0] >= todayStr && shiftDate <= twoWeeksFromNow;
     });
 
     // Fetch appointments
@@ -32,13 +33,12 @@ async function getAvailableTimeSlots(): Promise<any> {
     const appointments = appointmentsResponse.data;
 
     // Process available time slots
-    const availableTimeSlots: { date: string, timeSlots: string[] }[] = [];
+    const availableTimeSlots: { date: string, timeSlots: string[] }[] = []; 
 
     filteredShifts.forEach((shift: any) => {
         const shiftDate = new Date(shift.start).toISOString().split('T')[0];
         const shiftStart = new Date(shift.start);
         const shiftEnd = new Date(shift.end);
-
         // Create 30-minute blocks
         let currentTime = new Date(shiftStart);
         const timeSlots: string[] = [];
@@ -46,6 +46,7 @@ async function getAvailableTimeSlots(): Promise<any> {
         while (currentTime < shiftEnd) {
             const currentTimeStr = currentTime.toISOString().split('T')[1].substring(0, 5);
             const nextTime = new Date(currentTime);
+            
             nextTime.setMinutes(currentTime.getMinutes() + 30);
 
             // Check if the current time block is available
@@ -56,7 +57,8 @@ async function getAvailableTimeSlots(): Promise<any> {
             });
 
             // Add time slot if available and meets the criteria
-            if (isAvailable && (shiftDate !== todayStr || currentTime > new Date(today.getTime() + 60 * 60 * 1000))) {
+            const oneHourFromNow = new Date(today.getTime() + 60 * 60 * 1000);
+            if (isAvailable && (shiftDate !== todayStr || currentTime > oneHourFromNow)) {
                 timeSlots.push(currentTimeStr);
             }
 
@@ -67,7 +69,7 @@ async function getAvailableTimeSlots(): Promise<any> {
             availableTimeSlots.push({ date: shiftDate, timeSlots });
         }
     });
-
+    console.log(availableTimeSlots);
     return availableTimeSlots;
 }
 

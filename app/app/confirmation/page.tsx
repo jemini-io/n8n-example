@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { FormData } from '@/app/types';
 
 export default function ConfirmationPage() {
   const searchParams = useSearchParams();

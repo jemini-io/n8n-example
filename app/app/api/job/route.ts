@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
-import { createJobAppointmentHandler } from "@/app/services/book/handler";
+import { createJobAppointmentHandler } from "@/app/services/handler";
 import { BookRequest, ErrorResponse } from "@/app/types";
 
 export async function POST(req: NextRequest) {
