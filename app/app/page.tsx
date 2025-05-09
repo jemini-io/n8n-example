@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FormData, BookResponse, ErrorResponse, TimeSlot } from '@/app/types';
+import { FormData, BookResponse, ErrorResponse } from '@/app/types';
 
 interface AvailableTimeSlots {
   date: string;
@@ -77,7 +77,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           ...formData,
-          successUrl: `${window.location.origin}/confirmation?success=true&name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}&startTime=${encodeURIComponent(formData.startTime)}&endTime=${encodeURIComponent(formData.endTime)}`,
+          successUrl: `${window.location.origin}/confirmation?success=true&name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}&startTime=${encodeURIComponent(formData.startTime || '')}&endTime=${encodeURIComponent(formData.endTime || '')}`,
           cancelUrl: `${window.location.origin}/confirmation?success=false`,
         }),
       });
@@ -136,7 +136,7 @@ export default function Home() {
       <div className="max-w-lg w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Schedule a Virtual Consultation
+            Schedule a Virtual Consultation with Pedro
           </h2>
           <h4 className="m-2 text-center text-gray-500">
             {step === 1 ? 'Select Appointment Date and Time' : 'Provide Your Contact Info'}
