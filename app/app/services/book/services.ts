@@ -51,7 +51,7 @@ class JobService {
     }
 
     async createJob(authToken: string, appKey: string, tenantId: string, jobData: object): Promise<any> {
-        const url = `${this.baseUrl}/crm/v2/tenant/${tenantId}/jobs`;
+        const url = `${this.baseUrl}/jpm/v2/tenant/${tenantId}/jobs`;
         const headers = {
             'ST-App-Key': appKey,
             'Content-Type': 'application/json',

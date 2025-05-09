@@ -1,4 +1,4 @@
-import { AuthService, TechnicianService, AppointmentService } from './services';
+import { AuthService, TechnicianService, AppointmentService, CustomerService, JobService } from './services';
 import { env } from "@/app/config/env";
 
 const { servicetitan: { clientId, clientSecret, appKey, tenantId, technicianId }, environment } = env;
@@ -68,9 +68,80 @@ async function getAvailableTimeSlots(): Promise<any> {
         }
     });
 
-    console.log(availableTimeSlots);
-
     return availableTimeSlots;
 }
 
-export { getAvailableTimeSlots }; 
+async function createJobAppointmentHandler(name: string, email: string, phone: string, startTime: string, endTime: string): Promise<any> {
+    const authService = new AuthService(environment);
+    const customerService = new CustomerService(environment);
+    const jobService = new JobService(environment);
+
+    // Get auth token
+    const authToken = await authService.getAuthToken(clientId, clientSecret);
+
+    // Create customer data with the specified structure
+    const customerData = {
+        name,
+        type: "Residential",
+        doNotMail: true,
+        doNotService: false,
+        locations: [{
+            name: `${name} Residence`,
+            address: {
+                street: "123 Test",
+                unit: "",
+                city: "Test",
+                state: "TX",
+                zip: "12345",
+                country: "USA"
+            },
+            contacts: [
+                {
+                    type: "Phone",
+                    value: phone,
+                    memo: null
+                },
+                {
+                    type: "Email",
+                    value: email,
+                    memo: null
+                }
+            ]
+        }],
+        address: {
+            street: "123 Test",
+            unit: "",
+            city: "Test",
+            state: "TX",
+            zip: "12345",
+            country: "USA"
+        }
+    };
+
+    // Create customer
+    const customerResponse = await customerService.createCustomer(authToken, appKey, tenantId, customerData);
+    const customerId = customerResponse.id;
+    const locationId = customerResponse.locations[0].id;
+
+    // Create job
+    const jobData = {
+        customerId,
+        locationId,
+        businessUnitId: 4282891, //TODO: Make this dynamic
+        jobTypeId: 1689, //TODO: Make this dynamic
+        priority: "Normal", //TODO: Make this dynamic
+        campaignId: 49668727, //TODO: Make this dynamic
+        appointments: [{
+            start: startTime,
+            end: endTime,
+            arrivalWindowStart: startTime,
+            arrivalWindowEnd: endTime
+        }],
+        summary: "Jemini test of services" //TODO: Make this dynamic
+    };
+
+    const jobResponse = await jobService.createJob(authToken, appKey, tenantId, jobData);
+    return jobResponse;
+}
+
+export { getAvailableTimeSlots, createJobAppointmentHandler }; 

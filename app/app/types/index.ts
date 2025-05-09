@@ -13,6 +13,12 @@ export interface BookRequest extends FormData {
 
 export interface BookResponse {
   sessionUrl: string;
+  jobId?: number;
+  name?: string;
+  email?: string;
+  phone?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface ErrorResponse {

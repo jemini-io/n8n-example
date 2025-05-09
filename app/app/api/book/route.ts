@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { BookRequest, BookResponse, ErrorResponse } from "@/app/types";
 import { env } from "@/app/config/env";
-import { getAvailableTimeSlots } from "@/app/services/book/appointmentAvailabilityHandler";
+import { getAvailableTimeSlots, createJobAppointmentHandler } from "@/app/services/book/handler";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(env.stripe.secretKey);
@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
     const response: BookResponse = { sessionUrl: session.url };
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Error creating Stripe session:", error);
-    const errorResponse: ErrorResponse = { error: "Error creating payment session" };
+    console.error("Error creating Stripe session or scheduling appointment:", error);
+    const errorResponse: ErrorResponse = { error: "Error creating payment session or scheduling appointment" };
     return NextResponse.json(errorResponse, { status: 500 });
   }
 }
