@@ -135,7 +135,8 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
             start: startTime,
             end: endTime,
             arrivalWindowStart: startTime,
-            arrivalWindowEnd: endTime
+            arrivalWindowEnd: endTime,
+            technicianIds: [technicianId]
         }],
         summary: "Jemini test of services" //TODO: Make this dynamic
     };

@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { BookRequest, BookResponse, ErrorResponse } from "@/app/types";
 import { env } from "@/app/config/env";
-import { getAvailableTimeSlots, createJobAppointmentHandler } from "@/app/services/book/handler";
+import { getAvailableTimeSlots } from "@/app/services/book/handler";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(env.stripe.secretKey);
