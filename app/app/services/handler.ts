@@ -1,7 +1,15 @@
 import { AuthService, TechnicianService, AppointmentService, CustomerService, JobService } from './services';
 import { env } from "@/app/config/env";
+import { toZonedTime, format, fromZonedTime } from 'date-fns-tz';
 
 const { servicetitan: { clientId, clientSecret, appKey, tenantId, technicianId }, environment } = env;
+
+// Convert shift and appointment times to CT
+const convertToCT = (dateString: string) => {
+    const date = new Date(dateString);
+    const timeZone = 'America/Chicago';
+    return toZonedTime(date, timeZone);
+};
 
 async function getAvailableTimeSlots(): Promise<any> {
     const authService = new AuthService(environment);
@@ -28,31 +36,32 @@ async function getAvailableTimeSlots(): Promise<any> {
         return shiftDate.toISOString().split('T')[0] >= todayStr && shiftDate <= twoWeeksFromNow;
     });
 
+    console.log(filteredShifts);
     // Fetch appointments
     const appointmentsResponse = await appointmentService.getAppointments(authToken, appKey, tenantId, todayStr, technicianId);
     const appointments = appointmentsResponse.data;
-
+    console.log(appointments);
     // Process available time slots
     const availableTimeSlots: { date: string, timeSlots: string[] }[] = []; 
 
     filteredShifts.forEach((shift: any) => {
         const shiftDate = new Date(shift.start).toISOString().split('T')[0];
-        const shiftStart = new Date(shift.start);
-        const shiftEnd = new Date(shift.end);
+        const shiftStart = convertToCT(shift.start);
+        const shiftEnd = convertToCT(shift.end);
         // Create 30-minute blocks
         let currentTime = new Date(shiftStart);
         const timeSlots: string[] = [];
 
         while (currentTime < shiftEnd) {
-            const currentTimeStr = currentTime.toISOString().split('T')[1].substring(0, 5);
+            const currentTimeStr = format(currentTime, 'HH:mm', { timeZone: 'America/Chicago' });
             const nextTime = new Date(currentTime);
             
             nextTime.setMinutes(currentTime.getMinutes() + 30);
 
             // Check if the current time block is available
             const isAvailable = !appointments.some((appointment: any) => {
-                const appointmentStart = new Date(appointment.arrivalWindowStart);
-                const appointmentEnd = new Date(appointment.arrivalWindowEnd);
+                const appointmentStart = convertToCT(appointment.arrivalWindowStart);
+                const appointmentEnd = convertToCT(appointment.arrivalWindowEnd);
                 return currentTime >= appointmentStart && currentTime < appointmentEnd;
             });
 
@@ -75,13 +84,16 @@ async function getAvailableTimeSlots(): Promise<any> {
 
 async function createJobAppointmentHandler(name: string, email: string, phone: string, startTime: string, endTime: string): Promise<any> {
     const authService = new AuthService(environment);
-    const customerService = new CustomerService(environment);
     const jobService = new JobService(environment);
+    const customerService = new CustomerService(environment);
 
     // Get auth token
     const authToken = await authService.getAuthToken(clientId, clientSecret);
 
-    // Create customer data with the specified structure
+    // Calculate appointmentStartsBefore
+    const appointmentStartsBefore = new Date(new Date(endTime).getTime() + 30 * 60000).toISOString();
+
+    // Create customer to get customerId
     const customerData = {
         name,
         type: "Residential",
@@ -120,15 +132,21 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
         }
     };
 
-    // Create customer
     const customerResponse = await customerService.createCustomer(authToken, appKey, tenantId, customerData);
     const customerId = customerResponse.id;
-    const locationId = customerResponse.locations[0].id;
+
+    // Check if a job already exists
+    const existingJobs = await jobService.getJob(authToken, appKey, tenantId, technicianId, customerId, startTime, appointmentStartsBefore);
+
+    if (existingJobs && existingJobs.length > 0) {
+        console.log('Job already exists:', existingJobs[0]);
+        return { message: "Job already exists", jobId: existingJobs[0].id };
+    }
 
     // Create job
     const jobData = {
         customerId,
-        locationId,
+        locationId: customerResponse.locations[0].id,
         businessUnitId: 4282891, //TODO: Make this dynamic
         jobTypeId: 1689, //TODO: Make this dynamic
         priority: "Normal", //TODO: Make this dynamic

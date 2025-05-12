@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    // Call the handler to create a job appointment
+    // Use the handler function to manage job creation
     const jobResponse = await createJobAppointmentHandler(body.name, body.email, body.phone, body.startTime, body.endTime);
 
     return NextResponse.json(jobResponse);

@@ -61,6 +61,17 @@ class JobService {
         const response = await axios.post(url, jobData, { headers });
         return response.data;
     }
+
+    async getJob(authToken: string, appKey: string, tenantId: string, technicianId: string, customerId: string, appointmentStartsOnOrAfter: string, appointmentStartsBefore: string): Promise<any> {
+        const url = `${this.baseUrl}/jpm/v2/tenant/${tenantId}/jobs?technicianId=${technicianId}&customerId=${customerId}&appointmentStartsOnOrAfter=${appointmentStartsOnOrAfter}&appointmentStartsBefore=${appointmentStartsBefore}`;
+        const headers = {
+            'ST-App-Key': appKey,
+            'Authorization': `Bearer ${authToken}`
+        };
+
+        const response = await axios.get(url, { headers });
+        return response.data;
+    }
 }
 
 class TechnicianService {

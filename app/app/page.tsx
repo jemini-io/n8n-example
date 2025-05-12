@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FormData, BookResponse, ErrorResponse } from '@/app/types';
+import { toZonedTime } from 'date-fns-tz';
 
 interface AvailableTimeSlots {
   date: string;
@@ -49,7 +50,10 @@ export default function Home() {
     // Create a Date object in the local timezone
     const [year, month, day] = selectedDate.split('-').map(Number);
     const [hours, minutes] = time.split(':').map(Number);
-    const startTime = new Date(year, month - 1, day, hours, minutes);
+    const date = new Date(year, month - 1, day, hours, minutes);
+
+    // Convert the date to CST
+    const startTime = toZonedTime(date, 'America/Chicago');
     const endTime = new Date(startTime.getTime() + 30 * 60000);
 
     setFormData(prev => ({
@@ -64,6 +68,12 @@ export default function Home() {
     e.preventDefault();
     setIsLoading(true);
     
+    // Convert startTime and endTime to ISO format
+    const startTimeISO = new Date(formData.startTime).toISOString();
+    const endTimeISO = new Date(formData.endTime).toISOString();
+
+    const successUrl = `${window.location.origin}/confirmation?success=true&name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}&startTime=${encodeURIComponent(startTimeISO)}&endTime=${encodeURIComponent(endTimeISO)}`;
+
     try {
       const response = await fetch('/api/book', {
         method: 'POST',
@@ -72,8 +82,9 @@ export default function Home() {
         },
         body: JSON.stringify({
           ...formData,
-          successUrl: `${window.location.origin}/confirmation?success=true&name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}&startTime=${encodeURIComponent(formData.startTime || '')}&endTime=${encodeURIComponent(formData.endTime || '')}`,
-          cancelUrl: `${window.location.origin}/confirmation?success=false`,
+          startTime: startTimeISO,
+          endTime: endTimeISO,
+          successUrl,
         }),
       });
 
