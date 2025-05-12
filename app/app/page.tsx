@@ -69,8 +69,8 @@ export default function Home() {
     setIsLoading(true);
     
     // Convert startTime and endTime to ISO format
-    const startTimeISO = new Date(formData.startTime).toISOString();
-    const endTimeISO = new Date(formData.endTime).toISOString();
+    const startTimeISO = new Date(formData?.startTime ?? '').toISOString();
+    const endTimeISO = new Date(formData?.endTime ?? '').toISOString();
 
     const successUrl = `${window.location.origin}/confirmation?success=true&name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}&startTime=${encodeURIComponent(startTimeISO)}&endTime=${encodeURIComponent(endTimeISO)}`;
 
