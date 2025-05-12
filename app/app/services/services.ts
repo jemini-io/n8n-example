@@ -41,6 +41,28 @@ class CustomerService {
         const response = await axios.post(url, customerData, { headers });
         return response.data;
     }
+
+    async getCustomer(authToken: string, appKey: string, tenantId: string, name: string, street: string, zip: string): Promise<any> {
+        const url = `${this.baseUrl}/crm/v2/tenant/${tenantId}/customers?name=${encodeURIComponent(name)}&street=${encodeURIComponent(street)}&zip=${encodeURIComponent(zip)}`;
+        const headers = {
+            'ST-App-Key': appKey,
+            'Authorization': `Bearer ${authToken}`
+        };
+
+        const response = await axios.get(url, { headers });
+        return response.data;
+    }
+
+    async getLocation(authToken: string, appKey: string, tenantId: string, customerId: string): Promise<any> {
+        const url = `${this.baseUrl}/crm/v2/tenant/${tenantId}/locations?customerId=${customerId}`;
+        const headers = {
+            'ST-App-Key': appKey,
+            'Authorization': `Bearer ${authToken}`
+        };
+
+        const response = await axios.get(url, { headers });
+        return response.data;
+    }
 }
 
 class JobService {
@@ -62,8 +84,8 @@ class JobService {
         return response.data;
     }
 
-    async getJob(authToken: string, appKey: string, tenantId: string, technicianId: string, customerId: string, appointmentStartsOnOrAfter: string, appointmentStartsBefore: string): Promise<any> {
-        const url = `${this.baseUrl}/jpm/v2/tenant/${tenantId}/jobs?technicianId=${technicianId}&customerId=${customerId}&appointmentStartsOnOrAfter=${appointmentStartsOnOrAfter}&appointmentStartsBefore=${appointmentStartsBefore}`;
+    async getJob(authToken: string, appKey: string, tenantId: string, technicianId: string, appointmentStartsOnOrAfter: string, appointmentStartsBefore: string): Promise<any> {
+        const url = `${this.baseUrl}/jpm/v2/tenant/${tenantId}/jobs?technicianId=${technicianId}&appointmentStartsOnOrAfter=${appointmentStartsOnOrAfter}&appointmentStartsBefore=${appointmentStartsBefore}&appointmentStatus=Scheduled`;
         const headers = {
             'ST-App-Key': appKey,
             'Authorization': `Bearer ${authToken}`

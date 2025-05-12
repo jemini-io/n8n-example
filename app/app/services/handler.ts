@@ -93,7 +93,7 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
     // Calculate appointmentStartsBefore
     const appointmentStartsBefore = new Date(new Date(endTime).getTime() + 30 * 60000).toISOString();
 
-    // Create customer to get customerId
+    // Create customer data
     const customerData = {
         name,
         type: "Residential",
@@ -132,21 +132,41 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
         }
     };
 
-    const customerResponse = await customerService.createCustomer(authToken, appKey, tenantId, customerData);
-    const customerId = customerResponse.id;
+    // Check if a customer already exists
+    const existingCustomers = await customerService.getCustomer(authToken, appKey, tenantId, customerData.name, customerData.locations[0].address.street, customerData.locations[0].address.zip);
+    let customer = { id: null, locations: [] };
+    if (existingCustomers && existingCustomers.data && existingCustomers.data.length > 0) {
+        console.log('Customer already exists:', existingCustomers.data[0].id);
+        customer = existingCustomers.data[0];
 
-    // Check if a job already exists
-    const existingJobs = await jobService.getJob(authToken, appKey, tenantId, technicianId, customerId, startTime, appointmentStartsBefore);
-
-    if (existingJobs && existingJobs.length > 0) {
-        console.log('Job already exists:', existingJobs[0]);
-        return { message: "Job already exists", jobId: existingJobs[0].id };
+        // Fetch locations for the existing customer
+        const locationsResponse = await customerService.getLocation(authToken, appKey, tenantId, customer.id);
+        if (locationsResponse && locationsResponse.data && locationsResponse.data.length > 0) {
+            customer.locations = locationsResponse.data;
+        } else {
+            throw new Error('Customer does not have any locations.');
+        }
+    } else {
+        const customerResponse = await customerService.createCustomer(authToken, appKey, tenantId, customerData);
+        console.log("Customer created:", customerResponse.id);
+        customer = customerResponse;
     }
 
+    // Ensure customer has at least one location
+    if (!customer.locations || customer.locations.length === 0) {
+        throw new Error('Customer does not have any locations.');
+    }
+
+    // Check if a job already exists
+    const existingJobs = await jobService.getJob(authToken, appKey, tenantId, technicianId, startTime, appointmentStartsBefore);
+    if (existingJobs && existingJobs.data && existingJobs.data.length > 0) {
+        console.log('Job already exists:', existingJobs.data[0].id);
+        return existingJobs.data[0];
+    }
     // Create job
     const jobData = {
-        customerId,
-        locationId: customerResponse.locations[0].id,
+        customerId: customer.id,
+        locationId: customer.locations[0].id,
         businessUnitId: 4282891, //TODO: Make this dynamic
         jobTypeId: 1689, //TODO: Make this dynamic
         priority: "Normal", //TODO: Make this dynamic
@@ -160,8 +180,10 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
         }],
         summary: "Jemini test of services" //TODO: Make this dynamic
     };
-
+    console.log("Job data:", jobData);
+    console.log("Creating job starting at:", startTime);
     const jobResponse = await jobService.createJob(authToken, appKey, tenantId, jobData);
+    console.log("Job created:", jobResponse.id);
     return jobResponse;
 }
 
