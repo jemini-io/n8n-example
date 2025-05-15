@@ -1,4 +1,4 @@
-import { AuthService, TechnicianService, AppointmentService, CustomerService, JobService } from './services';
+import { AuthService, TechnicianService, AppointmentService, CustomerService, JobService, InvoiceService } from './services';
 import { env } from "@/app/config/env";
 import { toZonedTime, format, fromZonedTime } from 'date-fns-tz';
 
@@ -36,11 +36,11 @@ async function getAvailableTimeSlots(): Promise<any> {
         return shiftDate.toISOString().split('T')[0] >= todayStr && shiftDate <= twoWeeksFromNow;
     });
 
-    console.log(filteredShifts);
+    // console.log(filteredShifts);
     // Fetch appointments
     const appointmentsResponse = await appointmentService.getAppointments(authToken, appKey, tenantId, todayStr, technicianId);
     const appointments = appointmentsResponse.data;
-    console.log(appointments);
+    // console.log(appointments);
     // Process available time slots
     const availableTimeSlots: { date: string, timeSlots: string[] }[] = []; 
 
@@ -78,7 +78,7 @@ async function getAvailableTimeSlots(): Promise<any> {
             availableTimeSlots.push({ date: shiftDate, timeSlots });
         }
     });
-    console.log(availableTimeSlots);
+    // console.log(availableTimeSlots);
     return availableTimeSlots;
 }
 
@@ -86,6 +86,7 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
     const authService = new AuthService(environment);
     const jobService = new JobService(environment);
     const customerService = new CustomerService(environment);
+    const invoiceService = new InvoiceService(environment);
 
     // Get auth token
     const authToken = await authService.getAuthToken(clientId, clientSecret);
@@ -102,12 +103,12 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
         locations: [{
             name: `${name} Residence`,
             address: {
-                street: "123 Test",
+                street: "123 Test", //TODO: change street to the street of the customer
                 unit: "",
-                city: "Test",
-                state: "TX",
-                zip: "12345",
-                country: "USA"
+                city: "Test", //TODO: change city to the city of the customer
+                state: "TX", //TODO: change state to the state of the customer
+                zip: "12345", //TODO: change zip to the zip of the customer
+                country: "USA" //TODO: change country to the country of the customer
             },
             contacts: [
                 {
@@ -180,10 +181,48 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
         }],
         summary: "Jemini test of services" //TODO: Make this dynamic
     };
-    console.log("Job data:", jobData);
+
     console.log("Creating job starting at:", startTime);
     const jobResponse = await jobService.createJob(authToken, appKey, tenantId, jobData);
     console.log("Job created:", jobResponse.id);
+    const invoiceResponse = await invoiceService.getInvoiceByJobId(authToken, appKey, tenantId, jobResponse.id);
+    if (invoiceResponse && invoiceResponse.data && invoiceResponse.data.length > 0) {
+        const invoiceId = invoiceResponse.data[0].id;
+        const updatedInvoiceData = {
+            summary: "test invoice test", //TODO: change summary to the summary of the invoice
+            items: [
+                {
+                    skuName: "VIRTUALSERVICE", //TODO: change skuName to the sku name of the service
+                    description: "New Service Jemini", //TODO: change description to the description of the service
+                    unitPrice: 100, //TODO: change amount to the amount of the service
+                    technicianId: 34365881, // Replace with actual technician ID
+                    quantity: 1
+                }
+            ]
+        };
+        await invoiceService.updateInvoice(authToken, appKey, tenantId, invoiceId, updatedInvoiceData);
+        
+        // Check for existing payments
+        const paymentsResponse = await invoiceService.getPaymentsByInvoiceId(authToken, appKey, tenantId, invoiceId);
+        if (paymentsResponse && paymentsResponse.data && paymentsResponse.data.length > 0) {
+            console.log("Existing payments found:", paymentsResponse.data);
+        } else {
+            // Create payment if no existing payments
+            const paymentData = {
+                typeId: 63, //TODO: get payment type to match the payment type paid by customer
+                memo: "sum test", //TODO: improve memo
+                paidOn: new Date().toISOString(), // Use current date or specify another date
+                authCode: "123", //TODO: get auth code from customer
+                status: "Posted", 
+                splits: [{
+                    invoiceId: invoiceId,
+                    amount: 100.00 //TODO: change amount to the amount paid by customer
+                }]
+            };
+            await invoiceService.createPayment(authToken, appKey, tenantId, paymentData);
+        }
+    }
+
     return jobResponse;
 }
 

@@ -1,4 +1,8 @@
 import axios from 'axios';
+import { env } from "@/app/config/env"; // Adjust the path as necessary
+
+// Use the environment variable from the imported config
+const { environment } = env;
 
 class AuthService {
     private baseUrl: string;
@@ -94,6 +98,17 @@ class JobService {
         const response = await axios.get(url, { headers });
         return response.data;
     }
+
+    async getJobDetails(authToken: string, appKey: string, tenantId: string, jobId: string): Promise<any> {
+        const url = `${this.baseUrl}/jpm/v2/tenant/${tenantId}/jobs/${jobId}`;
+        const headers = {
+            'ST-App-Key': appKey,
+            'Authorization': `Bearer ${authToken}`
+        };
+
+        const response = await axios.get(url, { headers });
+        return response.data;
+    }
 }
 
 class TechnicianService {
@@ -134,4 +149,80 @@ class AppointmentService {
     }
 }
 
-export { AuthService, CustomerService, JobService, TechnicianService, AppointmentService }; 
+class InvoiceService {
+    private baseUrl: string;
+
+    constructor(environment: string) {
+        this.baseUrl = environment === 'prod' ? 'https://api.servicetitan.io' : 'https://api-integration.servicetitan.io';
+    }
+
+    async getInvoiceByJobId(authToken: string, appKey: string, tenantId: string, jobId: string): Promise<any> {
+        const url = `${this.baseUrl}/accounting/v2/tenant/${tenantId}/invoices?jobId=${jobId}`;
+        const headers = {
+            'ST-App-Key': appKey,
+            'Authorization': `Bearer ${authToken}`
+        };
+
+        const response = await axios.get(url, { headers });
+        return response.data;
+    }
+
+    async updateInvoice(authToken: string, appKey: string, tenantId: string, invoiceId: string, updatedInvoiceData: object): Promise<any> {
+        const url = `${this.baseUrl}/accounting/v2/tenant/${tenantId}/invoices/${invoiceId}`;
+        const headers = {
+            'ST-App-Key': appKey,
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+        };
+
+        const response = await axios.patch(url, updatedInvoiceData, { headers });
+        return response.data;
+    }
+
+    async adjustInvoiceTotal(authToken: string, appKey: string, tenantId: string, jobId: string) {
+        const jobService = new JobService(environment);
+        // Fetch the job to get the associated invoice ID
+        const jobDetails = await jobService.getJobDetails(authToken, appKey, tenantId, jobId);
+        const invoiceId = jobDetails.invoiceId;
+
+        // Fetch the current invoice
+        const invoice = await this.getInvoiceByJobId(authToken, appKey, tenantId, jobId);
+
+        // Modify the invoice items to update the total
+        const updatedInvoiceData = {
+            ...invoice,
+            items: [
+                ...invoice.items,
+                { description: "New Service", amount: 100, quantity: 1 } // Example item
+            ]
+        };
+
+        // Update the invoice
+        const updatedInvoice = await this.updateInvoice(authToken, appKey, tenantId, invoiceId, updatedInvoiceData);
+        console.log("Updated Invoice:", updatedInvoice);
+    }
+
+    async createPayment(authToken: string, appKey: string, tenantId: string, paymentData: object): Promise<any> {
+        const url = `${this.baseUrl}/accounting/v2/tenant/${tenantId}/payments`;
+        const headers = {
+            'ST-App-Key': appKey,
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+        };
+
+        const response = await axios.post(url, paymentData, { headers });
+        return response.data;
+    }
+
+    async getPaymentsByInvoiceId(authToken: string, appKey: string, tenantId: string, invoiceId: string): Promise<any> {
+        const url = `${this.baseUrl}/accounting/v2/tenant/${tenantId}/payments?appliedToInvoiceIds=${invoiceId}`;
+        const headers = {
+            'ST-App-Key': appKey,
+            'Authorization': `Bearer ${authToken}`
+        };
+
+        const response = await axios.get(url, { headers });
+        return response.data;
+    }
+}
+export { AuthService, CustomerService, JobService, TechnicianService, AppointmentService, InvoiceService }; 

@@ -53,8 +53,8 @@ export default function Home() {
     const date = new Date(year, month - 1, day, hours, minutes);
 
     // Convert the date to CST
-    const startTime = toZonedTime(date, 'America/Chicago');
-    const endTime = new Date(startTime.getTime() + 30 * 60000);
+    const startTime = date;
+    const endTime = new Date(date.getTime() + 30 * 60000);
 
     setFormData(prev => ({
       ...prev,
@@ -67,6 +67,7 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
     
     // Convert startTime and endTime to ISO format
     const startTimeISO = new Date(formData?.startTime ?? '').toISOString();
