@@ -9,6 +9,10 @@ interface AvailableTimeSlots {
   timeSlots: string[];
 }
 
+const states = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"
+];
+
 export default function Home() {
   const [step, setStep] = useState(1);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<AvailableTimeSlots[]>([]);
@@ -17,6 +21,10 @@ export default function Home() {
     name: '',
     phone: '',
     email: '',
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,7 +69,7 @@ export default function Home() {
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString()
     }));
-    setStep(2);
+    setStep(3);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,7 +108,7 @@ export default function Home() {
         return;
       }
 
-      setFormData({ name: '', phone: '', email: '' });
+      setFormData({ name: '', phone: '', email: '', street: '', city: '', state: '', zip: '' });
     } catch (error) {
       console.error('Error submitting form:', error);
       alert('Failed to submit form. Please try again.');
@@ -109,7 +117,7 @@ export default function Home() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -142,6 +150,24 @@ export default function Home() {
     return `Selected appointment time: ${date} ${formatTime(start)} - ${formatTime(end)}`;
   };
 
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedSubService, setSelectedSubService] = useState<string | null>(null);
+  const [details, setDetails] = useState<string>('');
+  
+
+  const handleServiceClick = (service: string) => {
+      setSelectedService(service);
+      setSelectedSubService(null); // Reset sub-service selection
+  };
+
+  const handleSubServiceClick = (subService: string) => {
+      setSelectedSubService(subService);
+  };
+
+  const handleNextClick = () => {
+      setStep(step + 1);
+  };
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-lg w-full space-y-8">
@@ -163,7 +189,86 @@ export default function Home() {
           </div>
         ) : (
           <>
-            {step === 1 ? (
+            {step === 1 && (
+                <>
+                  <div className="survey-container">
+                    <h2>What can we do for you?</h2>
+                    <div className="button-row">
+                        {['Plumbing', 'Water Heaters', 'Water Quality', 'Sewer & Gas', 'Foundation'].map(service => (
+                            <button
+                                key={service}
+                                className={`option-button ${selectedService === service ? 'selected' : ''}`}
+                                onClick={() => handleServiceClick(service)}
+                            >
+                                {service}
+                            </button>
+                        ))}
+                    </div>
+
+                    {selectedService === 'Plumbing' && (
+                        <>
+                            <h3>What plumbing service are you interested in?</h3>
+                            <div className="button-row">
+                                {['Plumbing Repair', 'Drain Cleaning', 'Commercial', 'Other'].map(subService => (
+                                    <button
+                                        key={subService}
+                                        className={`option-button ${selectedSubService === subService ? 'selected' : ''}`}
+                                        onClick={() => handleSubServiceClick(subService)}
+                                    >
+                                        {subService}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    {selectedService === 'Water Heaters' && (
+                        <>
+                            <h3>What type of water heater are you interested in?</h3>
+                            <div className="button-row">
+                                {['Tank Water Heaters', 'Tankless Water Heaters'].map(subService => (
+                                    <button
+                                        key={subService}
+                                        className={`option-button ${selectedSubService === subService ? 'selected' : ''}`}
+                                        onClick={() => handleSubServiceClick(subService)}
+                                    >
+                                        {subService}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    {selectedService === 'Water Quality' && (
+                        <>
+                            <h3>Which water quality service are you looking for?</h3>
+                            <div className="button-row">
+                                {['Water Testing', 'Water Filtration', 'Water Softeners', 'Water Conditioners', 'Reverse Osmosis', 'UV Water Filters'].map(subService => (
+                                    <button
+                                        key={subService}
+                                        className={`option-button ${selectedSubService === subService ? 'selected' : ''}`}
+                                        onClick={() => handleSubServiceClick(subService)}
+                                    >
+                                        {subService}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    <h3>Do you have any more details to share?</h3>
+                    <textarea
+                        className="details-textarea"
+                        value={details}
+                        onChange={(e) => setDetails(e.target.value)}
+                        placeholder="Enter additional details here..."
+                    />
+
+                    <button className="next-button" onClick={handleNextClick}>NEXT</button>
+                  </div>
+                </>
+            )}
+            {step === 2 && (
               <div className="mt-8 space-y-4">
                 <div className="flex overflow-x-auto space-x-4">
                   {availableTimeSlots.map((slot, index) => {
@@ -174,7 +279,7 @@ export default function Home() {
                       <button
                         key={index}
                         onClick={() => handleDateSelect(slot.date)}
-                        className={`px-4 py-2 border rounded-md ${selectedDate === slot.date ? 'bg-indigo-500 text-white' : 'bg-white text-gray-700'}`}
+                        className={`px-4 py-2 border rounded-md ${selectedDate === slot.date ? 'bg-intown-blue text-white' : 'bg-white text-gray-700'}`}
                       >
                         {localDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
                       </button>
@@ -196,7 +301,8 @@ export default function Home() {
                   </div>
                 )}
               </div>
-            ) : (
+            )}
+            {step === 3 && (
               <>
                 <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4">
                   <div className="flex">
@@ -258,6 +364,78 @@ export default function Home() {
                         className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                         placeholder="Email"
                         value={formData.email}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                  <br />
+                  {/* Address Collection */}
+                  <div className="rounded-md shadow-sm -space-y-px">
+                    <div>
+                      <label htmlFor="street" className="sr-only">
+                        Street Address
+                      </label>
+                      <input
+                        id="street"
+                        name="street"
+                        type="text"
+                        required
+                        className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                        placeholder="Street Address"
+                        value={formData.street}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="city" className="sr-only">
+                        City
+                      </label>
+                      <input
+                        id="city"
+                        name="city"
+                        type="text"
+                        required
+                        className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                        placeholder="City"
+                        value={formData.city}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="state" className="sr-only">
+                        State
+                      </label>
+                      <select
+                        id="state"
+                        name="state"
+                        required
+                        className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                        value={formData.state}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                      >
+                        <option value="">Select State</option>
+                        {states.map(state => (
+                          <option key={state} value={state}>{state}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="zip" className="sr-only">
+                        Zip Code
+                      </label>
+                      <input
+                        id="zip"
+                        name="zip"
+                        type="text"
+                        pattern="\d{5}"
+                        required
+                        className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                        placeholder="Zip Code"
+                        value={formData.zip}
                         onChange={handleChange}
                         disabled={isLoading}
                       />
