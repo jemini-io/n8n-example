@@ -109,6 +109,20 @@ class JobService {
         const response = await axios.get(url, { headers });
         return response.data;
     }
+
+    async completeJob(authToken: string, appKey: string, tenantId: string, jobId: string): Promise<any> {
+        const url = `${this.baseUrl}/jpm/v2/tenant/${tenantId}/jobs/${jobId}/complete`;
+        const headers = {
+            'ST-App-Key': appKey,
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+        };
+
+        const completedOn = new Date().toISOString(); // Current time in ISO format
+
+        const response = await axios.post(url, { completedOn }, { headers });
+        return response.data;
+    }
 }
 
 class TechnicianService {
