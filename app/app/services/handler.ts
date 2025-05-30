@@ -168,16 +168,16 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
     const jobData = {
         customerId: customer.id,
         locationId: customer.locations[0].id,
-        businessUnitId: 4282891, //TODO: Make this dynamic
+        businessUnitId: 4282891, //STATIC: "Virtual Service" business unit
         jobTypeId: 1689, //TODO: Make this dynamic
-        priority: "Normal", //TODO: Make this dynamic
-        campaignId: 49668727, //TODO: Make this dynamic
+        priority: "Normal", // KEEP for now
+        campaignId: 46989774, // STATIC: "Direct Web Traffic" campaign
         appointments: [{
             start: startTime,
             end: endTime,
             arrivalWindowStart: startTime,
             arrivalWindowEnd: endTime,
-            technicianIds: [technicianId]
+            technicianIds: [technicianId] //TODO: update technician id for available technician
         }],
         summary: "Jemini test of services" //TODO: Make this dynamic
     };
@@ -195,7 +195,7 @@ async function createJobAppointmentHandler(name: string, email: string, phone: s
                     skuName: "VIRTUALSERVICE", //TODO: change skuName to the sku name of the service
                     description: "New Service Jemini", //TODO: change description to the description of the service
                     unitPrice: 100, //TODO: change amount to the amount of the service
-                    technicianId: 34365881, // Replace with actual technician ID
+                    technicianId: 34365881, // TODO: Replace with actual technician ID
                     quantity: 1
                 }
             ]
